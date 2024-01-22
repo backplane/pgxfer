@@ -1,0 +1,2 @@
+basecfg~=2.1.1
+baselog~=2.0.1

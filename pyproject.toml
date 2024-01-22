@@ -1,0 +1,53 @@
+[project]
+name = "pgxfer"
+version = "0.1.0"
+authors = [
+  { name = "Backplane BV", email = "backplane@users.noreply.github.com" },
+]
+description = "helper for transferring databases from one server to another"
+readme = "README.md"
+requires-python = ">=3.12"
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: GNU Lesser General Public License v2 (LGPLv2)",
+  "Operating System :: OS Independent",
+]
+dependencies = ["basecfg", "baselog"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project.urls]
+"Homepage" = "https://github.com/backplane/pgxfer"
+"Bug Tracker" = "https://github.com/backplane/pgxfer/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"pgxfer" = ["py.typed"]
+
+[tool.vulture]
+# exclude = ["*file*.py", "dir/"]
+# ignore_decorators = ["@app.route", "@require_*"]
+# ignore_names = ["visit_*", "do_*"]
+make_whitelist = true
+min_confidence = 80
+paths = ["src"]
+sort_by_size = true
+verbose = true
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+
+[tool.pylint]
+max-line-length = 100
+disable = ["too-few-public-methods", "too-many-arguments"]
+
+[tool.pytest.ini_options]
+# https://docs.pytest.org/en/7.1.x/reference/customize.html
+minversion = "6.0"
+addopts = "-v"
+testpaths = ["tests/"]
+pythonpath = ["src"]
