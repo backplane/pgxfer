@@ -19,15 +19,15 @@ def pg_xfer(config: Config) -> bool:
     restore_cmd = [
         "/usr/bin/pg_restore",
         "--format=custom",
-        f"--dbname={config.dest_name}",
+        # f"--dbname={config.dest_name}",
     ]
     if config.clean_dest:
         restore_cmd.append("--clean")
         restore_cmd.append("--if-exists")
     if config.create_dest:
         restore_cmd.append("--create")
-    if config.job_count:
-        restore_cmd.append(f"--jobs={config.job_count}")
+    if not config.owner:
+        restore_cmd.append("--no-owner")
 
     dump = Popen(
         dump_cmd,

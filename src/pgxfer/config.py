@@ -29,12 +29,13 @@ class Config(BaseCfg):
             "connecting to it."
         ),
     )
-    job_count: Optional[int] = opt(
-        default=None,
+    owner: bool = opt(
+        default=True,
         doc=(
-            "Run the most time-consuming steps of pg_restore — those that "
-            "load data, create indexes, or create constraints — concurrently, "
-            "using up to JOB_COUNT concurrent sessions"
+            "Output commands to set ownership of objects to match the "
+            "original database. When enabled pg_restore issues ALTER OWNER "
+            "or SET SESSION AUTHORIZATION statements to set ownership of "
+            "created schema elements."
         ),
     )
 
