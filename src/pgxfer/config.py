@@ -14,6 +14,30 @@ def upper(arg: Any) -> str:
 class Config(BaseCfg):
     """declarative config class"""
 
+    clean_dest: bool = opt(
+        default=True,
+        doc=(
+            "before restoring database objects, issue commands to DROP all "
+            "the objects that will be restored"
+        ),
+    )
+    create_dest: bool = opt(
+        default=True,
+        doc=(
+            "Create the database before restoring into it. If CLEAN_DEST is "
+            "also specified, drop and recreate the target database before "
+            "connecting to it."
+        ),
+    )
+    job_count: Optional[int] = opt(
+        default=None,
+        doc=(
+            "Run the most time-consuming steps of pg_restore — those that "
+            "load data, create indexes, or create constraints — concurrently, "
+            "using up to JOB_COUNT concurrent sessions"
+        ),
+    )
+
     log_level: str = opt(
         default="INFO",
         choices=("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),

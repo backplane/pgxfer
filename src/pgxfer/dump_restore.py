@@ -11,8 +11,26 @@ logger = logging.getLogger(__name__)
 def pg_xfer(config: Config) -> bool:
     """pipe between pg_dump and pg_restore"""
 
+    dump_cmd = [
+        "/usr/bin/pg_dump",
+        "--format=custom",
+    ]
+
+    restore_cmd = [
+        "/usr/bin/pg_restore",
+        "--format=custom",
+        f"--dbname={config.dest_name}",
+    ]
+    if config.clean_dest:
+        restore_cmd.append("--clean")
+        restore_cmd.append("--if-exists")
+    if config.create_dest:
+        restore_cmd.append("--create")
+    if config.job_count:
+        restore_cmd.append(f"--jobs={config.job_count}")
+
     dump = Popen(
-        ["/usr/bin/pg_dump", "--format=custom"],
+        dump_cmd,
         stdout=PIPE,
         stderr=PIPE,
         shell=False,  # nosec: no untrusted inputs
@@ -27,7 +45,7 @@ def pg_xfer(config: Config) -> bool:
         errors="strict",
     )
     restore = Popen(
-        ["/usr/bin/pg_restore", "--format=custom", f"--dbname={config.dest_name}"],
+        restore_cmd,
         stdin=dump.stdout,
         stdout=PIPE,
         stderr=STDOUT,
@@ -51,6 +69,7 @@ def pg_xfer(config: Config) -> bool:
 
     with dump, restore:
         dump.stdout.close()  # allow src to receive a SIGPIPE if dest exits
+        logger.info("starting dump/restore process...")
         restore_output, _ = restore.communicate()  # stdout + stderr combined
         dump.wait()  # Make sure src has finished
         dump_stderr = dump.stderr.read()
@@ -85,4 +104,5 @@ def pg_xfer(config: Config) -> bool:
 
         result = dump.returncode == 0 and restore.returncode == 0
 
+    logger.info("dump/restore process complete")
     return result
