@@ -57,7 +57,6 @@ jobs:
           tags: |
             type=sha
             type=schedule
-            type=ref,event=branch
             type=ref,event=tag
             type=ref,event=pr
             type=semver,pattern={{major}}.{{minor}}.{{patch}}
@@ -75,3 +74,19 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
+          build-args: |-
+            COMMIT_SHA=${{ github.sha }}
+            GITHUB_TAG=${{ github.ref_name }}
+            GIT_COMMIT=${{ github.sha }}
+            GIT_TAG=${{ github.ref_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # https://github.com/peter-evans/dockerhub-description
+      - name: Update Docker Hub Description
+        if: github.event.pull_request.merged == true
+        uses: peter-evans/dockerhub-description@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: ${{ env.IMAGE_NAME }}
