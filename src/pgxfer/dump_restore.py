@@ -33,6 +33,7 @@ def pg_xfer(config: Config) -> bool:
     if not config.owner:
         restore_cmd.append("--no-owner")
 
+    logger.debug("pg_dump command: %s", " ".join(dump_cmd))
     dump = Popen(
         dump_cmd,
         stdout=PIPE,
@@ -48,6 +49,8 @@ def pg_xfer(config: Config) -> bool:
         encoding="utf8",
         errors="strict",
     )
+
+    logger.debug("pg_restore command: %s", " ".join(restore_cmd))
     restore = Popen(
         restore_cmd,
         stdin=dump.stdout,
