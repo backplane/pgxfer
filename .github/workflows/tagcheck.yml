@@ -1,0 +1,26 @@
+name: Tag Check
+
+on:
+  push:
+    tags:
+      - '*.*.*'
+
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      # https://github.com/actions/checkout
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: Version check
+        run: |
+          #!/bin/sh
+          # verify that the tag matches the version string in pyproject.toml
+          set -eux
+          TAG="${GITHUB_REF##refs/tags/v}"  # e.g. 1.0.0
+          grep -qE "^version = \"$TAG\"$" pyproject.toml
