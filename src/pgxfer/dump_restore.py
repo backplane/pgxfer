@@ -14,12 +14,16 @@ def pg_xfer(config: Config) -> bool:
     dump_cmd = [
         "/usr/bin/pg_dump",
         "--format=custom",
+        "--verbose",
+        "--verbose",
     ]
 
     restore_cmd = [
         "/usr/bin/pg_restore",
         "--format=custom",
-        # f"--dbname={config.dest_name}",
+        f"--dbname={config.dest_name}",
+        "--verbose",
+        "--verbose",
     ]
     if config.clean_dest:
         restore_cmd.append("--clean")
