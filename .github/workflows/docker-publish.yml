@@ -84,7 +84,6 @@ jobs:
 
       # https://github.com/peter-evans/dockerhub-description
       - name: Update Docker Hub Description
-        if: github.event.pull_request.merged == true
         uses: peter-evans/dockerhub-description@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
