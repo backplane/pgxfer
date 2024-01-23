@@ -17,7 +17,6 @@ def pg_xfer(config: Config) -> bool:
         "--verbose",
         "--verbose",
     ]
-
     restore_cmd = [
         "/usr/bin/pg_restore",
         "--format=custom",
@@ -32,6 +31,8 @@ def pg_xfer(config: Config) -> bool:
         restore_cmd.append("--create")
     if not config.owner:
         restore_cmd.append("--no-owner")
+    if not config.acl:
+        restore_cmd.append("--no-acl")
 
     logger.debug("pg_dump command: %s", " ".join(dump_cmd))
     dump = Popen(

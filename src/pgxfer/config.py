@@ -38,6 +38,10 @@ class Config(BaseCfg):
             "created schema elements."
         ),
     )
+    acl: bool = opt(
+        default=True,
+        doc="Restore access privileges (via grant/revoke commands)",
+    )
 
     log_level: str = opt(
         default="INFO",
