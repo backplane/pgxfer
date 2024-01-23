@@ -1,6 +1,11 @@
 # pgxfer
 
-This container is a wrapper around `pg_dump` and `pg_restore`. It is meant to simplify the process of moving postgres databases.
+Source Repo: <https://github.com/backplane/pgxfer/>
+Docker Repo: <https://hub.docker.com/r/backplane/pgxfer/>
+
+This container is a wrapper around [`pg_dump`](https://www.postgresql.org/docs/15/app-pgdump.html) and [`pg_restore`](https://www.postgresql.org/docs/15/app-pgrestore.html). It is meant to simplify the process of moving a postgres database.
+
+The core of the program effectively performs the following pipeline: `pg_dump ... | pg_restore ...`, this enables it to work quickly and not get too resource intensive.
 
 ## Usage
 
@@ -76,23 +81,23 @@ options:
 
 ## compose example
 
-This container is intended to be deployed with Docker Compose or something like Kubernetes:
+This container is intended to be deployed with Docker Compose (or something like Kubernetes). Here's a compose example:
 
 ```yaml
 services:
   pgxfer:
     image: backplane/pgxfer:1
     environment:
-      DEST_HOST: "sourcehost"
-      DEST_PORT: "5432"
-      DEST_USERNAME: "postgres"
-      DEST_PASSWORD: "hunter2"
-      DEST_NAME: "postgres"
-      SOURCE_HOST: "desthost"
+      SOURCE_HOST: "sourcehost"
       SOURCE_PORT: "5432"
       SOURCE_USERNAME: "dbadmin"
       SOURCE_PASSWORD: "egg$.ample.Passw0r7"
       SOURCE_NAME: "newpostgres"
+      DEST_HOST: "desthost"
+      DEST_PORT: "5432"
+      DEST_USERNAME: "postgres"
+      DEST_PASSWORD: "hunter2"
+      DEST_NAME: "postgres"
       LOG_DIR: "/log"
       LOG_LEVEL: "DEBUG"
     restart: no
