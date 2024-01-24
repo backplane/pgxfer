@@ -12,7 +12,10 @@ The core of the program effectively performs the following pipeline: `pg_dump ..
 The program emits the following help text when invoked with `-h` or `--help` flags.
 
 ```
-usage: pgxfer [-h] [--log-level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
+usage: pgxfer [-h] [--clean-dest | --no-clean-dest]
+              [--init-dest | --no-init-dest] [--owner | --no-owner]
+              [--acl | --no-acl]
+              [--log-level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
               [--log-dir LOG_DIR] [--source-host SOURCE_HOST]
               [--source-port SOURCE_PORT] [--source-username SOURCE_USERNAME]
               [--source-password SOURCE_PASSWORD] [--source-name SOURCE_NAME]
@@ -24,6 +27,20 @@ util for running pgdump between postgres instances
 
 options:
   -h, --help            show this help message and exit
+  --clean-dest, --no-clean-dest
+                        before restoring database objects, issue commands to
+                        DROP all the objects that will be restored (default:
+                        False)
+  --init-dest, --no-init-dest
+                        drop and recreate the target database before restoring
+                        into it (default: True)
+  --owner, --no-owner   Output commands to set ownership of objects to match
+                        the original database. When enabled pg_restore issues
+                        ALTER OWNER or SET SESSION AUTHORIZATION statements to
+                        set ownership of created schema elements. (default:
+                        True)
+  --acl, --no-acl       Restore access privileges (via grant/revoke commands)
+                        (default: True)
   --log-level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}
                         log level to use when writing to the console (default:
                         'INFO')
@@ -77,6 +94,10 @@ options:
 | `SOURCE_NAME`     |  name of database to connect to on the source database server    |
 | `LOG_DIR`         |  directory in which to write log files                           |
 | `LOG_LEVEL`       |  log level to use when writing to the console                    |
+| `OWNER`           |  whether to output commands to set ownership of objects          |
+| `ACL`             |  whether to apply access privileges (via grant/revoke commands)  |
+| `CLEAN_DEST`      |  whether to first DROP all the restored objects in the dest db   |
+| `INIT_DEST`       |  whether (re)create the dest database before restoring           |
 
 
 ## compose example
