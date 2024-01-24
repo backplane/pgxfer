@@ -10,7 +10,7 @@ x-stdenv: &stdenv
 
 x-psql: &psql
   # https://hub.docker.com/_/postgres
-  image: postgres:13-alpine
+  image: postgres:15-alpine
   command:
     - -c
     - shared_buffers=256MB
@@ -67,7 +67,6 @@ services:
 
   # https://hub.docker.com/_/postgres
   olddb:
-    image: postgres:15-alpine
     <<: *psql
     environment:
       <<: *stdenv
@@ -83,7 +82,6 @@ services:
 
   # https://hub.docker.com/_/postgres
   newdb:
-    image: postgres:15-alpine
     <<: *psql
     environment:
       <<: *stdenv
