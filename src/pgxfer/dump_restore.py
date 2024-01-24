@@ -1,34 +1,74 @@
 """ prime shell-out stuff"""
 import logging
-from subprocess import PIPE, STDOUT, CalledProcessError, Popen  # nosec: considered
-from typing import TYPE_CHECKING
+import os
+import shlex
+import threading
+from subprocess import PIPE, STDOUT, Popen, check_output  # nosec: considered
+from typing import TYPE_CHECKING, Final, List, Literal
 
 from .config import Config
 
 logger = logging.getLogger(__name__)
 
+DROPDB_BIN: Final = "/usr/bin/dropdb"
+CREATEDB_BIN: Final = "/usr/bin/createdb"
+PGDUMP_BIN: Final = "/usr/bin/pg_dump"
+PGRESTORE_BIN: Final = "/usr/bin/pg_restore"
+
+
+def log_output(stream, logger_method):
+    """Reads from stream line by line and logs using the provided logger method."""
+    try:
+        for line in iter(stream.readline, ""):
+            logger_method(line.rstrip("\n"))
+    finally:
+        stream.close()
+
+
+def drop_dest_db(config: Config):
+    """call the dropdb command on the destination database"""
+    libpq_cmd(config, "dest", [DROPDB_BIN, "--if-exists", config.dest_name])
+
+
+def create_dest_db(config: Config) -> None:
+    """create the destination database from template0"""
+    libpq_cmd(config, "dest", [CREATEDB_BIN, "-T", "template0", config.dest_name])
+
+
+def libpq_cmd(
+    config: Config,
+    db_selection: Literal["source", "dest"],
+    cmd: List[str],
+) -> None:
+    """create the destination database from template0"""
+    logger.debug("running %s", " ".join([shlex.quote(word) for word in cmd]))
+    cmd_output = check_output(  # nosec: filtered input
+        cmd,
+        env=config.libpq_env(db_selection),
+        stderr=STDOUT,
+        encoding="utf8",
+        errors="strict",
+    )
+    if cmd_output:
+        logger.debug("%s: %s", os.path.basename(cmd[0]), cmd_output)
+
 
 def pg_xfer(config: Config) -> bool:
     """pipe between pg_dump and pg_restore"""
 
-    dump_cmd = [
-        "/usr/bin/pg_dump",
-        "--format=custom",
-        "--verbose",
-        "--verbose",
-    ]
+    dump_cmd = [PGDUMP_BIN, "--format=custom", "--verbose"]
     restore_cmd = [
-        "/usr/bin/pg_restore",
+        PGRESTORE_BIN,
         "--format=custom",
+        "--verbose",
+        "--verbose",
         f"--dbname={config.dest_name}",
-        "--verbose",
-        "--verbose",
     ]
     if config.clean_dest:
         restore_cmd.append("--clean")
-        restore_cmd.append("--if-exists")
-    if config.create_dest:
-        restore_cmd.append("--create")
+    if config.init_dest:
+        drop_dest_db(config)
+        create_dest_db(config)
     if not config.owner:
         restore_cmd.append("--no-owner")
     if not config.acl:
@@ -40,13 +80,7 @@ def pg_xfer(config: Config) -> bool:
         stdout=PIPE,
         stderr=PIPE,
         shell=False,  # nosec: no untrusted inputs
-        env={
-            "PGHOST": config.source_host,
-            "PGPORT": str(config.source_port),
-            "PGUSER": config.source_username,
-            "PGPASSWORD": config.source_password,
-            "PGDATABASE": config.source_name,
-        },
+        env=config.libpq_env("source"),
         encoding="utf8",
         errors="strict",
     )
@@ -58,13 +92,7 @@ def pg_xfer(config: Config) -> bool:
         stdout=PIPE,
         stderr=STDOUT,
         shell=False,  # nosec: no untrusted inputs
-        env={
-            "PGHOST": config.dest_host,
-            "PGPORT": str(config.dest_port),
-            "PGUSER": config.dest_username,
-            "PGPASSWORD": config.dest_password,
-            "PGDATABASE": config.dest_name,
-        },
+        env=config.libpq_env("dest"),
         encoding="utf8",
         errors="strict",
     )
@@ -73,42 +101,51 @@ def pg_xfer(config: Config) -> bool:
         assert dump.stdout is not None
         assert dump.stderr is not None
 
-    result: bool = False
+    # Start a thread to log pg_dump stderr output in real-time
+    dump_logger_thread = threading.Thread(
+        target=log_output,
+        args=(dump.stderr, logger.debug),
+        daemon=True,
+    )
+
+    # Start a thread to log pg_restore stdout/stderr output in real-time
+    restore_logger_thread = threading.Thread(
+        target=log_output,
+        args=(restore.stdout, logger.debug),
+        daemon=True,
+    )
+
+    dump_logger_thread.start()
+    restore_logger_thread.start()
+
+    # result: bool = False
 
     with dump, restore:
-        dump.stdout.close()  # allow src to receive a SIGPIPE if dest exits
+        dump.stdout.close()  # allow dump to receive a SIGPIPE if restore exits
         logger.info("starting dump/restore process...")
-        restore_output, _ = restore.communicate()  # stdout + stderr combined
-        dump.wait()  # Make sure src has finished
-        dump_stderr = dump.stderr.read()
+
+        # Wait for the threads to finish
+        dump.wait()
+        restore.wait()
+        dump_logger_thread.join()
+        restore_logger_thread.join()
 
         # check the pipeline in reverse order starting with restore
         if restore.returncode != 0:
             logger.error(
-                "pg_restore non-zero exit (%s); output: %s",
+                "pg_restore non-zero exit %s; (pg_dump exit: %s)",
                 restore.returncode,
-                restore_output,
+                dump.returncode,
             )
-            # knowing the status of the dump command may be helpful as well...
-            logger.info("pg_dump exit: %s; stderr: %s", dump.returncode, dump_stderr)
-            raise CalledProcessError(
+            raise RuntimeError(
                 restore.returncode,
                 restore.args,
-                output=restore_output,
             )
-        if restore_output:
-            logger.info("pg_restore output: %s", restore_output)
 
         # check the dump process
         if dump.returncode != 0:
-            logger.error(
-                "pg_dump non-zero exit (%s); stderr: %s",
-                dump.returncode,
-                dump_stderr,
-            )
-            raise CalledProcessError(dump.returncode, dump.args, stderr=dump_stderr)
-        if dump_stderr:
-            logger.error("pg_dump stderr: %s", dump_stderr)
+            logger.error("pg_dump non-zero exit (%s)", dump.returncode)
+            raise RuntimeError(dump.returncode, dump.args)
 
         result = dump.returncode == 0 and restore.returncode == 0
 
