@@ -23,7 +23,7 @@ usage: pgxfer [-h] [--clean-dest | --no-clean-dest]
               [--dest-username DEST_USERNAME] [--dest-password DEST_PASSWORD]
               [--dest-name DEST_NAME]
 
-util for running pgdump between postgres instances
+util for copying databases between postgres servers
 
 options:
   -h, --help            show this help message and exit
@@ -75,7 +75,6 @@ options:
   --dest-name DEST_NAME
                         name of database to connect to on the dest database
                         server (default: 'postgres')
-
 ```
 
 ## Environment Variables

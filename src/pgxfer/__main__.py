@@ -15,7 +15,7 @@ def main() -> int:
     """
     config = Config(
         prog=__package__,
-        prog_description="util for running pgdump between postgres instances",
+        prog_description="util for copying databases between postgres servers",
     )
     logger = baselog.BaseLog(
         root_name=__package__,
