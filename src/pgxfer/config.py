@@ -1,5 +1,5 @@
 """ declarative config for app"""
-from typing import Any, Optional
+from typing import Any, Dict, Literal, Optional
 
 from basecfg import BaseCfg, opt
 
@@ -13,6 +13,31 @@ def upper(arg: Any) -> str:
 
 class Config(BaseCfg):
     """declarative config class"""
+
+    clean_dest: bool = opt(
+        default=False,
+        doc=(
+            "before restoring database objects, issue commands to DROP all "
+            "the objects that will be restored"
+        ),
+    )
+    init_dest: bool = opt(
+        default=True,
+        doc=("drop and recreate the target database before restoring into it"),
+    )
+    owner: bool = opt(
+        default=True,
+        doc=(
+            "Output commands to set ownership of objects to match the "
+            "original database. When enabled pg_restore issues ALTER OWNER "
+            "or SET SESSION AUTHORIZATION statements to set ownership of "
+            "created schema elements."
+        ),
+    )
+    acl: bool = opt(
+        default=True,
+        doc="Restore access privileges (via grant/revoke commands)",
+    )
 
     log_level: str = opt(
         default="INFO",
@@ -66,3 +91,16 @@ class Config(BaseCfg):
         default="postgres",
         doc="name of database to connect to on the dest database server",
     )
+
+    def libpq_env(self, prefix: Literal["source", "dest"]) -> Dict[str, str]:
+        """
+        helper which returns a dict of libpq envvars corresponding to the source or
+        dest database
+        """
+        return {
+            "PGHOST": getattr(self, f"{prefix}_host"),
+            "PGPORT": str(getattr(self, f"{prefix}_port")),
+            "PGUSER": getattr(self, f"{prefix}_username"),
+            "PGPASSWORD": getattr(self, f"{prefix}_password"),
+            "PGDATABASE": getattr(self, f"{prefix}_name"),
+        }
