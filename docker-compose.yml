@@ -1,0 +1,106 @@
+# this compose file can be used for testing pgxfer; the variables referenced
+# here are defined in the companion .env file
+
+# example usage:
+# docker compose run --rm pgxfer
+
+# items beginning with x- are extensions for inclusion below
+x-stdenv: &stdenv
+  TZ: ${TZ}
+
+x-psql: &psql
+  # https://hub.docker.com/_/postgres
+  image: postgres:13-alpine
+  command:
+    - -c
+    - shared_buffers=256MB
+    - -c
+    - max_connections=200
+  deploy:
+    resources:
+      limits:
+        cpus: '2.5'
+        memory: 2gb
+        pids: 150
+  healthcheck:
+    interval: 5s
+    retries: 5
+    test:
+      - CMD
+      - /usr/local/bin/pg_isready
+    timeout: 5s
+  networks:
+    internal:
+  restart: unless-stopped
+  shm_size: 2gb
+
+services:
+
+  pgxfer:
+    build: .
+    depends_on:
+      olddb:
+        condition: service_healthy
+      newdb:
+        condition: service_healthy
+    environment:
+      <<: *stdenv
+      SOURCE_HOST: ${SOURCE_DB_HOST}
+      SOURCE_PORT: ${SOURCE_DB_PORT}
+      SOURCE_USERNAME: ${SOURCE_DB_USERNAME}
+      SOURCE_PASSWORD: ${SOURCE_DB_PASSWORD}
+      SOURCE_NAME: ${SOURCE_DB_NAME}
+      DEST_HOST: ${DEST_DB_HOST}
+      DEST_PORT: ${DEST_DB_PORT}
+      DEST_USERNAME: ${DEST_DB_USERNAME}
+      DEST_PASSWORD: ${DEST_DB_PASSWORD}
+      DEST_NAME: ${DEST_DB_NAME}
+      LOG_DIR: "/log"
+      LOG_LEVEL: "DEBUG"
+      ACL: False
+      OWNER: False
+    restart: no
+    volumes:
+      - "./log:/log"
+    networks:
+      internal:
+
+  # https://hub.docker.com/_/postgres
+  olddb:
+    image: postgres:15-alpine
+    <<: *psql
+    environment:
+      <<: *stdenv
+      POSTGRES_USER: ${SOURCE_DB_USERNAME}
+      POSTGRES_PASSWORD: ${SOURCE_DB_PASSWORD}
+      POSTGRES_DB: ${SOURCE_DB_NAME}
+      PGDATA: "/pgdata"
+      # the following are libpq envvars and are helpful with tools like psql
+      PGDATABASE: ${SOURCE_DB_NAME}
+      PGUSER: ${SOURCE_DB_USERNAME}
+    volumes:
+      - "source:/pgdata"
+
+  # https://hub.docker.com/_/postgres
+  newdb:
+    image: postgres:15-alpine
+    <<: *psql
+    environment:
+      <<: *stdenv
+      POSTGRES_USER: ${DEST_DB_USERNAME}
+      POSTGRES_PASSWORD: ${DEST_DB_PASSWORD}
+      POSTGRES_DB: ${DEST_DB_NAME}
+      PGDATA: "/pgdata"
+      # https://www.postgresql.org/docs/current/libpq-envars.html
+      PGDATABASE: ${DEST_DB_NAME}
+      PGUSER: ${DEST_DB_USERNAME}
+    volumes:
+      - "dest:/pgdata"
+
+volumes:
+  source:
+  dest:
+
+networks:
+  internal:
+    internal: True
