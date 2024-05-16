@@ -1,4 +1,5 @@
-""" prime shell-out stuff"""
+"""prime shell-out stuff"""
+
 import logging
 import os
 import shlex
@@ -40,7 +41,8 @@ def libpq_cmd(
     db_selection: Literal["source", "dest"],
     cmd: List[str],
 ) -> None:
-    """create the destination database from template0"""
+    """execute an external command with the selected set of libpq envvars"""
+    # https://www.postgresql.org/docs/current/libpq-envars.html
     logger.debug("running %s", " ".join([shlex.quote(word) for word in cmd]))
     cmd_output = check_output(  # nosec: filtered input
         cmd,
