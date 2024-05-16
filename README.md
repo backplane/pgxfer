@@ -1,11 +1,18 @@
 # pgxfer
 
-Source Repo: <https://github.com/backplane/pgxfer/>
-Docker Repo: <https://hub.docker.com/r/backplane/pgxfer/>
+This container simplifies the process of moving a PostgreSQL database. The core functionality is based on a pipeline: `pg_dump ... | pg_restore ...`, which offers several advantages:
 
-This container is a wrapper around [`pg_dump`](https://www.postgresql.org/docs/15/app-pgdump.html) and [`pg_restore`](https://www.postgresql.org/docs/15/app-pgrestore.html). It is meant to simplify the process of moving a postgres database.
+- Accurate data transfer because the underlying tools [`pg_dump`](https://www.postgresql.org/docs/current/app-pgdump.html) and [`pg_restore`](https://www.postgresql.org/docs/current/app-pgrestore.html) are part of PostgreSQL
+- Fast execution times
+- Can be run from anywhere that can reach both databases
+- Minimal impact on database service during migration
+- Does not require intermediate storage, as the process is stream-based.
 
-The core of the program effectively performs the following pipeline: `pg_dump ... | pg_restore ...`, this enables it to work quickly and not get too resource intensive.
+Repo         | URL
+------------ | --------------------------------------------
+Source Code  | <https://github.com/backplane/pgxfer/>
+Docker Image | <https://hub.docker.com/r/backplane/pgxfer/>
+
 
 ## Usage
 
